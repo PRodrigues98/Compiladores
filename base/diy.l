@@ -1,4 +1,5 @@
 %{
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -10,9 +11,18 @@ void yyerror(char *s);
 int nest = 0;
 %}
 
-%x COM STR
+%x COM1 COM2 STRING
 
 %%
+"=<"					BEGIN COM1;
+<COM1>"=<"				nest++;
+<COM1>"=>"				if(nest == 0) BEGIN INITIAL; else nest--;					
+<COM1>.|\n 				;
+
+"=="					BEGIN COM2;
+<COM2>.					;
+<COM2>\n				BEGIN COM2;
+
 "for"		  			return FOR;
 "void"		  			return VOID;
 "integer"     			return INTEGER;
@@ -35,13 +45,15 @@ int nest = 0;
 ">="					return GEQ;
 "<="					return LEQ;
 "<>"					return DIF;
-":="
-"++"
-"--"	
+":="					return ASSIGN;
+"++"					return INC;
+"--"					return DEC;
+
 [-+*/%<>=!|&~]			return *yytext;
-[0-9]+		  			yylval.i = strtol(yytext, 0, 10); return INT;
+[-+]?[0-9]+		  		yylval.i = strtol(yytext, NULL, 10); return INT;
 [a-zA-Z][a-zA-Z_0-9]    yylval.s = strdup(yytext); return ID;
-[0-9]\.[0-9]			return NUM;
+[0-9]\.[0-9]			yylval.d = strtod(yytext, NULL); return NUM;
+
 %%
 
 int yywrap(void) { return 1; }

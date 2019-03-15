@@ -17,7 +17,7 @@ int yyerror(char *s);
 
 
 %token <i> INT
-%token <s> STRING ID
+%token <s> STR ID
 %token <d> NUM
 %token FOR IF THEN ELSE WHILE DO FOR IN STEP UPTO DOWNTO BREAK CONTINUE
 %token VOID PUBLIC CONST
