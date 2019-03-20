@@ -38,6 +38,7 @@ extern int yyerror(char *s);
 <STR>\\n			strcat(yylval.s, "\n");
 <STR>\\t			strcat(yylval.s, "\t");
 <STR>\\\"			strcat(yylval.s, yytext + 1);
+<STR>
 <STR>\\.			yyerror("Invalid escape sequence in string");
 <STR>.|\n			strcat(yylval.s, yytext);
 
