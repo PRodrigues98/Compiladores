@@ -80,7 +80,10 @@ int main(int argc, char *argv[]) {
 	    }
 	}
 
-	printf("%d\n", yynerrs);
-
-    return yynerrs;
+	if (yynerrs > 0){
+		fprintf(stderr, "%d errors\n", yynerrs);
+		return 1;
+	}
+	
+    return 0;
 }
