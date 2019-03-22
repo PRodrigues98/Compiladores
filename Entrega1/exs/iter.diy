@@ -1,0 +1,13 @@
+
+number factorial(integer n){
+	
+	integer i 
+	
+	number res := 1.0
+
+	for i in 1 upto n {
+		res := res * i
+	}
+
+	factorial := res
+}

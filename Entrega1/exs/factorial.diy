@@ -1,0 +1,21 @@
+
+public void printd(number d)
+public number factorial(integer n)
+public number readd()
+
+
+public integer entry (integer argc, string *argv, string *envp) {
+	number res
+
+	if (argc = 1) then {
+		res := factorial(5)
+	}
+	else {
+		res := factorial(readd(argv[1]))
+	}
+
+	printd(res)
+
+	entry := 0
+
+};

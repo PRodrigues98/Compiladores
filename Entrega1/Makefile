@@ -1,12 +1,14 @@
 LANG=diy
+LEX=diy
+YACC=inicial
 CC=gcc
 CFLAGS=-g -DYYDEBUG
 
 
-$(LANG): $(LANG).y $(LANG).l
-	byacc -dv $(LANG).y
-	flex -l $(LANG).l
+$(LEX): $(YACC).y $(LEX).l
+	byacc -dv $(YACC).y
+	flex -l $(LEX).l
 	$(LINK.c) -o $(LANG) lex.yy.c y.tab.c
 
 clean::
-	rm -f *.o $(LANG) lex.yy.c y.tab.c y.tab.h y.output yyselect.c *.asm *~
+	rm -f *.o $(LANG) lex.yy.c y.tab.c y.tab.h y.output

@@ -41,7 +41,7 @@ int yyerror(char *s) {
 	extern int yylineno;
 	extern char *getyytext();
 
-	fprintf(stdout, "%s at or before '%s' in line %d\n", s, getyytext(), yylineno);
+	fprintf(stderr, "%s at or before '%s' in line %d\n", s, getyytext(), yylineno);
 
 	yynerrs++;
 
@@ -49,6 +49,25 @@ int yyerror(char *s) {
 }
 
 int main(int argc, char *argv[]) {
+
+	if(argc > 2) {
+		fprintf(stderr, "USAGE: %s [infile]\n", argv[0]);
+		exit(1);
+	}
+
+	extern FILE *yyin;
+
+	if(argc > 1) {
+
+		if ((yyin = fopen(argv[1], "r")) == NULL) {
+			perror(argv[1]);
+			return 1;
+		}
+	}
+	else {
+		yyin = stdin;
+	}
+
     extern YYSTYPE yylval;
     int tk;
 
@@ -65,10 +84,3 @@ int main(int argc, char *argv[]) {
 
     return yynerrs;
 }
-
-char **yynames =
-#if YYDEBUG > 0
-		 (char**)yyname;
-#else
-		 0;
-#endif

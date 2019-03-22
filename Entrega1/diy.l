@@ -13,12 +13,13 @@ extern int yyerror(char *s);
 
 char *checkedMalloc(int size);
 void checkOverflow(long int i);
-void catstr(char *dest, char *orig);
 void addChar(char *dest, char c);
 char *dupstr(const char *s);
 int parseInt(char *s, int base);
 double parseDouble(char *s);
 int octal(char *s);
+
+int mallocCheck = 0, delim = 0;
 
 %}
 
@@ -39,63 +40,70 @@ int octal(char *s);
 
 
 
-\"([^"]|\\\")*\"			yylval.s = checkedMalloc(yyleng); if(yylval.s != NULL) *yylval.s = 0; REJECT;
+\"([^"]|\\\")*\"			yylval.s = checkedMalloc(yyleng); if(yylval.s != NULL){*yylval.s = 0; mallocCheck = 1;} REJECT;
 
 \"							BEGIN STR;
 
-<STR>\"						BEGIN 0; return STRING;
-<STR>\\n					catstr(yylval.s, "\n");
-<STR>\\t					catstr(yylval.s, "\t");
-<STR>\\\"					catstr(yylval.s, yytext + 1);
-<STR>\\([0-9A-Fa-f]{1,2})	addChar(yylval.s, (char)parseInt(yytext + 1, 16));
-<STR>.|\n					catstr(yylval.s, yytext);
+<STR>\"						mallocCheck = 0; BEGIN 0; delim = 1; return STRING;
+<STR>\\n					if(mallocCheck) strcat(yylval.s, "\n");
+<STR>\\t					if(mallocCheck) strcat(yylval.s, "\t");
+<STR>\0						yyerror("Invalid character in string");
+<STR>\\\"					if(mallocCheck) strcat(yylval.s, yytext + 1);
+<STR>\\\\					if(mallocCheck) strcat(yylval.s, yytext + 1);
+<STR>\\([0-9A-Fa-f]{1,2})	if(mallocCheck) addChar(yylval.s, (char)parseInt(yytext + 1, 16));
+<STR>\\(.|\n)				yyerror("Invalid escape sequence in string");
+<STR>.|\n					if(mallocCheck) strcat(yylval.s, yytext);
 
 
 
-"void"		  			return VOID;
-"integer"     			return INTEGER;
-"string"	  			return STRING_TYPE;
-"public"	  			return PUBLIC;
-"number"	  			return NUMBER;
-"const"		  			return CONST;
-"if"		  			return IF;
-"then"		  			return THEN;
-"else"		  			return ELSE;
-"while"		  			return WHILE;
-"do"		  			return DO;
-"for"		  			return FOR;
-"in"		  			return IN;
-"step"		  			return STEP;
-"upto"		  			return UPTO;
-"downto"	  			return DOWNTO;
-"break"		  			return BREAK;
-"continue"   		 	return CONTINUE;
+"void"		  			delim = 0; return VOID;
+"integer"     			delim = 0; return INTEGER;
+"string"	  			delim = 0; return STRING_TYPE;
+"public"	  			delim = 0; return PUBLIC;
+"number"	  			delim = 0; return NUMBER;
+"const"		  			delim = 0; return CONST;
+"if"		  			delim = 0; return IF;
+"then"		  			delim = 0; return THEN;
+"else"		  			delim = 0; return ELSE;
+"while"		  			delim = 0; return WHILE;
+"do"		  			delim = 0; return DO;
+"for"		  			delim = 0; return FOR;
+"in"		  			delim = 0; return IN;
+"step"		  			delim = 0; return STEP;
+"upto"		  			delim = 0; return UPTO;
+"downto"	  			delim = 0; return DOWNTO;
+"break"		  			delim = 0; return BREAK;
+"continue"   		 	delim = 0; return CONTINUE;
 
 
-">="					return GEQ;
-"<="					return LEQ;
-"<>"					return DIF;
-":="					return ASSIGN;
-"++"					return INC;
-"--"					return DEC;
+">="					delim = 0; return GEQ;
+"<="					delim = 0; return LEQ;
+"<>"					delim = 0; return DIF;
+":="					delim = 0; return ASSIGN;
+"++"					delim = 0; return INC;
+"--"					delim = 0; return DEC;
 
 
-[-+*/%<>=!|&~]			return *yytext; /*Operadores*/
-[#{}()[\];,]			return *yytext; /*Delimitadores*/
+[)!]					delim = 1; return *yytext;
+[-+*/%<>=!|&~]			delim = 0; return *yytext; /*Operadores*/
+[#{}()[\];,]			delim = 0; return *yytext; /*Delimitadores*/
 
 
-[1-9][0-9]*	  			yylval.i = parseInt(yytext, 10); return INT;
-0[0-9]*					yylval.i = octal(yytext + 1); printf("%d\n", yylval.i); return INT;
-0b[01]+					yylval.i = parseInt(yytext + 2, 2); return INT;
+[1-9][0-9]*	  			yylval.i = parseInt(yytext, 10); delim = 1; return INT;
+0[0-9]*					yylval.i = octal(yytext + 1);  delim = 1; return INT;
+0b[01]+					yylval.i = parseInt(yytext + 2, 2); delim = 1; return INT;
 
 
-[0-9]+\.[0-9]+([\E\e]([-+])?[0-9]+)?		yylval.d = parseDouble(yytext); return NUM;
+[0-9]+\.[0-9]+([\E\e]([-+])?[0-9]+)?		yylval.d = parseDouble(yytext); delim = 1; return NUM;
 
 
-[a-zA-Z][a-zA-Z0-9_]*   yylval.s = dupstr(yytext); return ID;
+[a-zA-Z][a-zA-Z0-9_]*   yylval.s = dupstr(yytext); delim = 1; return ID;
 
 
-[ \n\t\r]+				; /*Atencao ao \n*/
+\n						 if(delim == 1){ delim = 0; return ';'; }
+
+
+[ \t\r]+				; /*Atencao ao \n*/
 
 .						yyerror("Unknown character");
 
@@ -127,22 +135,6 @@ int parseInt(char *s, int base){
     }
 
 	return (int)num;
-}
-
-
-void catstr(char *dest, char *orig){
-	
-	/* 
-		
-		If the destination is not null then the string malloc worked, 
-		if not there should already be an error given or one coming
-		from an unterminated string
-
-	*/
-
-	if(dest != NULL){
-		strcat(dest, orig);
-	}
 }
 
 
@@ -197,11 +189,6 @@ char *dupstr(const char *s){
 
 
 void addChar(char *dest, char c){
-
-	if(dest == NULL){
-		return;
-	}
-
 	int len = strlen(dest);
 
 	dest[len] = c;
