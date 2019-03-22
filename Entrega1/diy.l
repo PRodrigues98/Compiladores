@@ -85,8 +85,8 @@ int mallocCheck = 0, delim = 0;
 
 
 [)!]					delim = 1; return *yytext;
-[-+*/%<>=!|&~]			delim = 0; return *yytext; /*Operadores*/
-[#{}()[\];,]			delim = 0; return *yytext; /*Delimitadores*/
+[-+*/%<>=|&~]			delim = 0; return *yytext; /*Operadores*/
+[#{}([\];,]				delim = 0; return *yytext; /*Delimitadores*/
 
 
 [1-9][0-9]*	  			yylval.i = parseInt(yytext, 10); delim = 1; return INT;
