@@ -10,4 +10,4 @@ number factorial(integer n){
 	}
 
 	factorial := res
-}
+};

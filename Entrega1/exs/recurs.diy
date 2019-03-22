@@ -1,11 +1,11 @@
 
-number factorial(integer n){
+public number factorial(integer n){
 
 	if (n <= 1) then {
 		factorial := 1.0
 	}
 	else {
-		factorial := n * factorialRecurs(n - 1)
+		factorial := n * factorial(n - 1)
 	}
 
-}
+};

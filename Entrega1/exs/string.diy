@@ -30,5 +30,10 @@ public string strchr(const string str, integer c){
 		i++;
 	} while (str[i] <> c & str[i] <> 0);
 
-	strchr := &str[i];
+	if(str[i] = 0) then {
+		strchr := 0
+	}
+	else {
+		strchr := &str[i];
+	}
 };

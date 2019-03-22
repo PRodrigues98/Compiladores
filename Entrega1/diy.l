@@ -47,6 +47,7 @@ int mallocCheck = 0, delim = 0;
 <STR>\"						mallocCheck = 0; BEGIN 0; delim = 1; return STRING;
 <STR>\\n					if(mallocCheck) strcat(yylval.s, "\n");
 <STR>\\t					if(mallocCheck) strcat(yylval.s, "\t");
+<STR>\\r					if(mallocCheck) strcat(yylval.s, "\r");
 <STR>\0						yyerror("Invalid character in string");
 <STR>\\\"					if(mallocCheck) strcat(yylval.s, yytext + 1);
 <STR>\\\\					if(mallocCheck) strcat(yylval.s, yytext + 1);
@@ -92,18 +93,19 @@ int mallocCheck = 0, delim = 0;
 [1-9][0-9]*	  			yylval.i = parseInt(yytext, 10); delim = 1; return INT;
 0[0-9]*					yylval.i = octal(yytext + 1);  delim = 1; return INT;
 0b[01]+					yylval.i = parseInt(yytext + 2, 2); delim = 1; return INT;
+0b[0-9]+				yyerror("Invalid binary expression"); return INT;
 
 
-[0-9]+\.[0-9]+([\E\e]([-+])?[0-9]+)?		yylval.d = parseDouble(yytext); delim = 1; return NUM;
+[0-9]+\.[0-9]+([Ee]([-+])?[0-9]+)?		yylval.d = parseDouble(yytext); delim = 1; return NUM;
 
 
-[a-zA-Z][a-zA-Z0-9_]*   yylval.s = dupstr(yytext); delim = 1; return ID;
+[a-zA-Z][a-zA-Z0-9_]*	yylval.s = dupstr(yytext); delim = 1; return ID;
 
 
-\n						 if(delim == 1){ delim = 0; return ';'; }
+\n						if(delim == 1){ delim = 0; return ';'; }
 
 
-[ \t\r]+				; /*Atencao ao \n*/
+[ \t\r]+				;
 
 .						yyerror("Unknown character");
 
@@ -197,13 +199,14 @@ void addChar(char *dest, char c){
 
 
 double parseDouble(char *s){
-	double num = 0;
 
-	if(sscanf(s, "%lf", &num) != 1){
-		yyerror("Number overflow");
+	errno = 0;
 
-		return 0;
-	}
+    double num = strtod(s, NULL);
+
+    if (errno == ERANGE){
+        yyerror("Number overflow");
+    }
 
 	return num;
 }

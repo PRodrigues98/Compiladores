@@ -1,7 +1,7 @@
 
 public void printd(number d)
 public integer rand()
-public number atoi()
+public integer atoi(string s)
 
 
 public integer entry (integer argc, string *argv, string *envp) {
@@ -10,7 +10,7 @@ public integer entry (integer argc, string *argv, string *envp) {
 		integer i, n := atoi(argv[1])
 
 		if(n > 0) then {
-			number res := 0
+			number res := 0.0
 
 			for i in 1 upto n {
 				res := res + rand()
