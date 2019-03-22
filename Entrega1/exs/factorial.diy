@@ -1,7 +1,7 @@
 
 public void printd(number d)
 public number factorial(integer n)
-public number readd()
+public number atod()
 
 
 public integer entry (integer argc, string *argv, string *envp) {
@@ -9,13 +9,16 @@ public integer entry (integer argc, string *argv, string *envp) {
 
 	if (argc = 1) then {
 		res := factorial(5)
+
+		printd(res)
+
+		entry := 0
+	}
+	else if (argc = 2) then {
+		res := factorial(atod(argv[1]))
 	}
 	else {
-		res := factorial(readd(argv[1]))
+		entry := 1
 	}
-
-	printd(res)
-
-	entry := 0
 
 };

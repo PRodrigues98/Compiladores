@@ -1,17 +1,33 @@
 #include <stdio.h>
-#include <stdlib.h>
 
 int strcmp(const char *s1, const char *s2);
 char *strcpy(char *dest, const char *src);
 char *strchr(const char *str, int c);
 double factorialRecurs(int n);
 double factorialIter(int n);
+int rand();
+void srand(int s);
+
+int Xn = 100003;
 
 
 int main(){
 
-	printf("%lf\n", factorialRecurs(0));
+	printf("%d\n%d\n", rand(), rand());
 	return 0;
+}
+
+
+int rand(){
+	int mul = 27983, incr = 149, mod = 1000000;
+
+	Xn = (Xn * mul + incr) % mod;
+
+	return Xn;
+}
+
+void srand(int s){
+	Xn = s;
 }
 
 
