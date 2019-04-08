@@ -40,7 +40,7 @@ int mallocCheck = 0, delim = 0;
 
 
 
-\"([^"]|\\\")*\"			yylval.s = checkedMalloc(yyleng); if(yylval.s != NULL){*yylval.s = 0; mallocCheck = 1;} REJECT;
+\"([^\\\"]|\\(.|\n))*\"		yylval.s = checkedMalloc(yyleng); if(yylval.s != NULL){*yylval.s = 0; mallocCheck = 1;} REJECT;
 
 \"							BEGIN STR;
 
@@ -49,8 +49,8 @@ int mallocCheck = 0, delim = 0;
 <STR>\\t					if(mallocCheck) strcat(yylval.s, "\t");
 <STR>\\r					if(mallocCheck) strcat(yylval.s, "\r");
 <STR>\0						yyerror("Invalid character in string");
-<STR>\\\"					if(mallocCheck) strcat(yylval.s, yytext + 1);
 <STR>\\\\					if(mallocCheck) strcat(yylval.s, yytext + 1);
+<STR>\\\"					if(mallocCheck) strcat(yylval.s, yytext + 1);
 <STR>\\([0-9A-Fa-f]{1,2})	if(mallocCheck) addChar(yylval.s, (unsigned char)parseInt(yytext + 1, 16));
 <STR>\\(.|\n)				yyerror("Invalid escape sequence in string");
 <STR>.|\n					if(mallocCheck) strcat(yylval.s, yytext);
