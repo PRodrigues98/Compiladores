@@ -28,3 +28,11 @@ Entrega1/y\.tab\.c
 
 Entrega1/y\.tab\.h
 *.zip
+*.swp
+Entrega2/.DS_Store
+.DS_Store
+Entrega2/diy
+Entrega2/lex.yy.c
+Entrega2/y.tab.h
+Entrega2/y.tab.c
+Entrega2/yyselect.c
