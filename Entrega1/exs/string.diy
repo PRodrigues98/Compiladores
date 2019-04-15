@@ -1,6 +1,8 @@
 
-public integer strcmp(const string s1, const string s2){
-	integer i := -1;
+public integer strcmp(string s1, string s2){
+	integer i;
+
+	i := -1
 
 	do{
 		i++;
@@ -10,8 +12,9 @@ public integer strcmp(const string s1, const string s2){
 };
 
 
-public string strcpy(string dest, const string src){
-	integer i := -1;
+public string strcpy(string dest, string src){
+	integer i
+	i := -1
 
 	do{
 		i++;
@@ -23,8 +26,9 @@ public string strcpy(string dest, const string src){
 };
 
 
-public string strchr(const string str, integer c){
-	integer i := -1;
+public string strchr(string str, integer c){
+	integer i
+	i := -1
 
 	do{
 		i++;

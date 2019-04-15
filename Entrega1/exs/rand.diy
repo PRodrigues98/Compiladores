@@ -2,7 +2,13 @@
 public integer Xn := 100003
 
 public integer rand(){
-	integer mul := 27983, incr := 149, mod := 1000000
+	integer mul
+	integer incr
+	integer mod
+
+	mul := 27983
+	incr := 149
+	mod := 1000000
 
 	Xn := (Xn * mul + incr) % mod
 

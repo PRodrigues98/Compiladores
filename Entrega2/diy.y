@@ -14,8 +14,6 @@ extern int yylex();
 extern int yyerror(char *s);
 extern int errors;
 
-int checkFunction(int type, char *id, LinkedList *l, int init);
-
 typedef struct functionInfo {
 	int initialized;
 	LinkedList *args;
@@ -69,7 +67,7 @@ int cycles = 0;
 %%
 
 
-file : decls							{printNode(uniNode(ROOT, $1), 0, yynames);}
+file : decls							{if(errors == 0) printNode(uniNode(ROOT, $1), 0, yynames);}
 ;
 
 decls : decls decl						{$$ = binNode(DECLS, $1, $2);}
@@ -87,14 +85,14 @@ decl : PUBLIC CONST vartype ID varinit ';'		{$$ = binNode(DECL, nilNode(PUBLIC),
 
 
 	 | PUBLIC vartype ID '(' params ')' '{' {checkFunction(setFunction($2->value.i), $3, (LinkedList*)$5->user, 1);} corpo '}' ';'		{$$ = binNode(DECL, nilNode(PUBLIC), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, $2, strNode(ID, $3)), $5), $9)); IDpop();}
-	 | PUBLIC vartype ID '(' ')' '{' {checkFunction(setFunction($2->value.i), $3, 0, 1);} corpo '}' ';'											{$$ = binNode(DECL, nilNode(PUBLIC), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, $2, strNode(ID, $3)), nilNode(NIL)), $8)); IDpop();}
+	 | PUBLIC vartype ID '(' ')' '{' {checkFunction(setFunction($2->value.i), $3, 0, 1);} corpo '}' ';'									{$$ = binNode(DECL, nilNode(PUBLIC), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, $2, strNode(ID, $3)), nilNode(NIL)), $8)); IDpop();}
 	 | vartype ID '(' params ')' '{' {checkFunction(setFunction($1->value.i), $2, (LinkedList*)$4->user, 1);} corpo '}' ';'				{$$ = binNode(DECL, nilNode(PRIVATE), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, $1, strNode(ID, $2)), $4), $8)); IDpop();}
-	 | vartype ID '(' ')' '{' {checkFunction(setFunction($1->value.i), $2, 0, 1);} corpo '}' ';'												{$$ = binNode(DECL, nilNode(PRIVATE), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, $1, strNode(ID, $2)), nilNode(NIL)), $7)); IDpop();}
+	 | vartype ID '(' ')' '{' {checkFunction(setFunction($1->value.i), $2, 0, 1);} corpo '}' ';'										{$$ = binNode(DECL, nilNode(PRIVATE), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, $1, strNode(ID, $2)), nilNode(NIL)), $7)); IDpop();}
 
 	 | PUBLIC VOID ID '(' params ')' '{' {checkFunction(setFunction(setVoid(0)), $3, (LinkedList*)$5->user, 1);} corpo '}' ';'		{$$ = binNode(DECL, nilNode(PUBLIC), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, intNode(TYPE, setVoid(0)), strNode(ID, $3)), $5), $9)); IDpop();}
-	 | PUBLIC VOID ID '(' ')' '{' {checkFunction(setFunction(setVoid(0)), $3, 0, 1);} corpo '}' ';'											{$$ = binNode(DECL, nilNode(PUBLIC), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, intNode(TYPE, setVoid(0)), strNode(ID, $3)), nilNode(NIL)), $8)); IDpop();}
+	 | PUBLIC VOID ID '(' ')' '{' {checkFunction(setFunction(setVoid(0)), $3, 0, 1);} corpo '}' ';'									{$$ = binNode(DECL, nilNode(PUBLIC), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, intNode(TYPE, setVoid(0)), strNode(ID, $3)), nilNode(NIL)), $8)); IDpop();}
 	 | VOID ID '(' params ')' '{' {checkFunction(setFunction(setVoid(0)), $2, (LinkedList*)$4->user, 1);} corpo '}' ';'				{$$ = binNode(DECL, nilNode(PRIVATE), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, intNode(TYPE, setVoid(0)), strNode(ID, $2)), $4), $8)); IDpop();}
-	 | VOID ID '(' ')' '{' {checkFunction(setFunction(setVoid(0)), $2, 0, 1);} corpo '}' ';'												{$$ = binNode(DECL, nilNode(PRIVATE), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, intNode(TYPE, setVoid(0)), strNode(ID, $2)), nilNode(NIL)), $7)); IDpop();}
+	 | VOID ID '(' ')' '{' {checkFunction(setFunction(setVoid(0)), $2, 0, 1);} corpo '}' ';'										{$$ = binNode(DECL, nilNode(PRIVATE), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, intNode(TYPE, setVoid(0)), strNode(ID, $2)), nilNode(NIL)), $7)); IDpop();}
 
 	 | PUBLIC vartype ID '(' params ')' ';'		{$$ = binNode(DECL, nilNode(PUBLIC), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, $2, strNode(ID, $3)), $5), nilNode(NIL))); checkFunction(setFunction($2->value.i), $3, $5->user, 0);}
 	 | PUBLIC vartype ID '(' ')' ';'			{$$ = binNode(DECL, nilNode(PUBLIC), binNode(FUNC, binNode(FUNCPROP, binNode(TYPEID, $2, strNode(ID, $3)), nilNode(NIL)), nilNode(NIL))); checkFunction(setFunction($2->value.i), $3, 0, 0);}
@@ -343,7 +341,7 @@ void pushArg(LinkedList *l){
 }
 
 int checkFunction(int type, char *id, LinkedList *l, int init){
-	int declType = IDsearch(id, (long *)IDtest, 1, 0);
+	int declType = IDsearch(id, (long *)IDtest, IDlevel(), 0);
 	FunctionInfo *info = 0;
 	long aux;
 
@@ -353,12 +351,19 @@ int checkFunction(int type, char *id, LinkedList *l, int init){
 		return setInteger(0);
 	}
 	else if(init == 2 && declType != -1){
-		declType = IDsearch(id, &aux, 1, 0);
+
+		if(!isFunc(declType)){
+			yyerror("ID is not a function");
+
+			return declType;
+		}
+
+		declType = IDsearch(id, &aux, IDlevel(), 0);
 
 		info = (FunctionInfo *)aux;
 
 		if(info == NULL){
-			yyerror("Function information was corrupted");
+			yyerror("Function information was not initialized");
 
 			return cleanFunction(declType);
 		}
@@ -381,7 +386,7 @@ int checkFunction(int type, char *id, LinkedList *l, int init){
 	}
 	else{
 
-		declType = IDsearch(id, (long *)&aux, 1, 0);
+		declType = IDsearch(id, (long *)&aux, IDlevel(), 0);
 
 		info = (FunctionInfo *)aux;
 
@@ -390,14 +395,14 @@ int checkFunction(int type, char *id, LinkedList *l, int init){
 
 			IDreplace(type, id, aux);
 
-			return type;
+			return cleanFunction(type);
 		}
 		else if(!compareLists(info->args, l)){
 			yyerror("Incompatible declared function arguments");
 
 			IDreplace(type, id, aux);
 
-			return type;
+			return cleanFunction(type);
 		}
 	}
 

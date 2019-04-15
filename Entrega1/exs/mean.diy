@@ -6,13 +6,18 @@ public integer atoi(string s)
 
 public integer entry (integer argc, string *argv, string *envp) {
 
+	integer i
+	integer n
+	number res
+
 	if (argc = 2) then {
-		integer i, n := atoi(argv[1])
+
+		n := atoi(argv[1])
 
 		if(n > 0) then {
-			number res := 0.0
+			res := 0.0
 
-			for i in 1 upto n {
+			for i in 1 upto n do {
 				res := res + rand()
 			}
 

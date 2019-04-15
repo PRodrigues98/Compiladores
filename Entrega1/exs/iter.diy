@@ -3,9 +3,11 @@ number factorial(integer n){
 	
 	integer i 
 	
-	number res := 1.0
+	number res
 
-	for i in 1 upto n {
+	res := 1.0
+
+	for i in 1 upto n do {
 		res := res * i
 	}
 

@@ -1,6 +1,7 @@
 #include "LinkedList.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "types.h"
 
 LinkedList *addElement(int type, char *id, LinkedList *l){
 
@@ -35,7 +36,7 @@ int compareLists(LinkedList *l1, LinkedList *l2){
 		return 0;
 	}
 
-	while(aux1->next != NULL && aux2->next != NULL){
+	while(aux1 != NULL && aux2 != NULL){
 		if(aux1->type != aux2->type){
 			return 0;
 		}
