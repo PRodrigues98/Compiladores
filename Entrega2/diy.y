@@ -13,6 +13,7 @@
 extern int yylex();
 extern int yyerror(char *s);
 extern int errors;
+
 int checkFunction(int type, char *id, LinkedList *l, int init);
 
 typedef struct functionInfo {
