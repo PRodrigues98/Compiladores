@@ -1,4 +1,5 @@
 %{
+
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -6,13 +7,21 @@
 #include "node.h"
 #include "tabid.h"
 #include "postfix.h"
-%}
-%term END=';'
-%include "y.tab.h"
-%%
-stmt:	END	1	{	}
-%%
 #include "y.tab.h"
+
 extern void yyerror(const char*);
 extern char **yynames;
 extern int trace;
+
+%}
+
+%term END=';'
+%include "y.tab.h"
+
+%%
+
+stmt:	END	1	{	}
+
+%%
+
+
