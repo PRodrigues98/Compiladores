@@ -52,14 +52,14 @@ static char *fpar;
 %token LOCAL POSINC POSDEC PTR CALL START PARAM NIL
 %%
 file	:
-	| file error ';'
-	| file public tipo ID ';'	{ IDnew($3->value.i, $4, 0); declare($2, 0, $3, $4, 0); }
-	| file public CONST tipo ID ';'	{ IDnew($4->value.i+5, $5, 0); declare($2, 1, $4, $5, 0); }
-	| file public tipo ID init	{ IDnew($3->value.i, $4, 0); declare($2, 0, $3, $4, $5); }
-	| file public CONST tipo ID init	{ IDnew($4->value.i+5, $5, 0); declare($2, 1, $4, $5, $6); }
-	| file public tipo ID { enter($2, $3->value.i, $4); } finit { function($2, $3, $4, $6); }
-	| file public VOID ID { enter($2, 4, $4); } finit { function($2, intNode(VOID, 4), $4, $6); }
-	;
+		| file error ';'
+		| file public tipo ID ';'	{ IDnew($3->value.i, $4, 0); declare($2, 0, $3, $4, 0); }
+		| file public CONST tipo ID ';'	{ IDnew($4->value.i+5, $5, 0); declare($2, 1, $4, $5, 0); }
+		| file public tipo ID init	{ IDnew($3->value.i, $4, 0); declare($2, 0, $3, $4, $5); }
+		| file public CONST tipo ID init	{ IDnew($4->value.i+5, $5, 0); declare($2, 1, $4, $5, $6); }
+		| file public tipo ID { enter($2, $3->value.i, $4); } finit { function($2, $3, $4, $6); }
+		| file public VOID ID { enter($2, 4, $4); } finit { function($2, intNode(VOID, 4), $4, $6); }
+		;
 
 public	:               { $$ = 0; }
 	| PUBLIC        { $$ = 1; }
@@ -207,8 +207,7 @@ char **yynames =
 		 0;
 #endif
 
-void declare(int pub, int cnst, Node *type, char *name, Node *value)
-{
+void declare(int pub, int cnst, Node *type, char *name, Node *value){
   int typ;
   if (!value) {
     if (!pub && cnst) yyerror("local constants must be initialised");
@@ -220,6 +219,7 @@ void declare(int pub, int cnst, Node *type, char *name, Node *value)
   if (type->value.i != typ)
     yyerror("wrong types in initialization");
 }
+
 void enter(int pub, int typ, char *name) {
 	fpar = malloc(32); /* 31 arguments, at most */
 	fpar[0] = 0; /* argument count */
@@ -231,17 +231,22 @@ void enter(int pub, int typ, char *name) {
 
 int checkargs(char *name, Node *args) {
 	char *arg;
+
 	int typ;
-        if ((typ = IDsearch(name, (long*)&arg,IDlevel(),1)) < 20) {
+
+    if ((typ = IDsearch(name, (long*)&arg,IDlevel(),1)) < 20) {
 		yyerror("ident not a function");
 		return 0;
 	}
+
 	if (args == 0 && arg[0] == 0)
 		;
+
 	else if (args == 0 && arg[0] != 0)
 		yyerror("function requires no arguments");
 	else if (args != 0 && arg[0] == 0)
 		yyerror("function requires arguments");
+
 	else {
 		int err = 0, null, i = arg[0], typ;
 		do {
@@ -272,19 +277,24 @@ int checkargs(char *name, Node *args) {
 int nostring(Node *arg1, Node *arg2) {
 	if (arg1->info % 5 == 2 || arg2->info % 5 == 2)
 		yyerror("can not use strings");
+
 	return arg1->info % 5 == 3 || arg2->info % 5 == 3 ? 3 : 1;
 }
 
 int intonly(Node *arg, int novar) {
+
 	if (arg->info % 5 != 1)
 		yyerror("only integers can be used");
+
 	if (arg->info % 10 > 5)
 		yyerror("argument is constant");
+
 	return 1;
 }
 
 int noassign(Node *arg1, Node *arg2) {
 	int t1 = arg1->info, t2 = arg2->info;
+
 	if (t1 == t2) return 0;
 	if (t1 == 3 && t2 == 1) return 0; /* real := int */
 	if (t1 == 1 && t2 == 3) return 0; /* int := real */
@@ -293,17 +303,25 @@ int noassign(Node *arg1, Node *arg2) {
 		return 0; /* string := 0 */
 	if (t1 > 10 && t1 < 20 && arg2->attrib == INT && arg2->value.i == 0)
 		return 0; /* pointer := 0 */
+
 	return 1;
 }
 
-void function(int pub, Node *type, char *name, Node *body)
-{
+void function(int pub, Node *type, char *name, Node *body){
 	Node *bloco = LEFT_CHILD(body);
+
 	IDpop();
+
 	if (bloco != 0) { /* not a forward declaration */
+
 		long par;
 		int fwd = IDfind(name, &par);
-		if (fwd > 40) yyerror("duplicate function");
-		else IDreplace(fwd+40, name, par);
+
+		if (fwd > 40){
+			yyerror("duplicate function");
+		} 
+		else {
+			IDreplace(fwd+40, name, par);
+		}
 	}
 }
