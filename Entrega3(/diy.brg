@@ -1,0 +1,112 @@
+%{
+
+#include <stdio.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+#include "node.h"
+#include "tabid.h"
+#include "postfix.h"
+#include "y.tab.h"
+
+extern void yyerror(const char*);
+extern char **yynames;
+extern int trace;
+extern FILE *outfp;
+
+int lbl;
+
+static long brklbl[20], brkcnt; /* break labels */
+/* label _L0 is a break without a while/switch) */
+
+char *extrns[100]; /* emit externs at the end only */
+int extcnt;
+
+char *mklbl(int n) {
+ 	static char buf[20];
+	sprintf(buf, "_i%d", n);
+	return strcpy(malloc(strlen(buf)+1),buf);
+}
+
+static void outstr(char *s) {
+
+	while(*s){
+		fprintf(outfp, pfCHAR, (unsigned char)*s++);
+	}
+
+	fprintf(outfp, pfCHAR, 0);
+}
+
+char *mkfunc(char *s) {
+	char *buf = malloc(80);
+	
+	strcpy(buf, "_");
+	strcat(buf, s);
+ 	
+ 	return buf;
+}
+
+%}
+
+%term LIST=';' BLOCK='{' ARGS=','
+%include "y.tab.h"
+
+%%
+
+bloco:	BLOCK(list)			1 {}
+
+list: LIST(list, base) 		1 {}
+list: base		 			1 {}
+
+base: expr					1 {}
+
+expr: CALL(ID, args)		1 { fprintf(outfp, pfCALL pfTRASH pfPUSH, mkfunc(LEFT_CHILD(p)->value.s), 4 /*TODO*/); }
+expr: ATR(INT, ID)			1 { fprintf(outfp, pfIMM pfLOCAL pfSTORE, LEFT_CHILD(p)->value.i, -4 /*TODO*/); }
+expr: STR 					1 { lbl++; fprintf(outfp, pfRODATA pfALIGN pfLABEL, mklbl(lbl)); outstr(p->value.s); fprintf(outfp, pfTEXT pfADDR, mklbl(lbl)); }
+
+args: ARGS(NIL, expr)		1 {}
+
+%%
+
+void enterFunction(char *name, int enter, Node *stmt) {
+ 	int i;
+
+ 	extern int errors, trace;
+ 	extern char **yynames;
+
+ 	if(errors){
+ 		return;
+ 	} 
+
+	if(trace){
+		printNode(stmt, 0, yynames);
+	} 
+	
+	fflush(stdout);
+
+	char *funcName = mkfunc(name);
+
+	fprintf(outfp, pfTEXT pfALIGN pfGLOBL pfLABEL pfENTER, funcName, pfFUNC, funcName, enter * (pfWORD/4));
+
+	yyselect(stmt);
+
+	fprintf(outfp, pfPOP /*Pop shouldnt be here*/ pfLEAVE pfRET);
+
+	freeNode(stmt);
+
+	for (i = 0; i < extcnt; i++){
+		if (extrns[i] && strcmp(extrns[i], funcName) == 0){
+			extrns[i] = 0;
+		}
+	}
+}
+
+void externs(){
+	int i;
+  
+	for (i = 0; i < extcnt; i++){
+  		if (extrns[i]){
+    		fprintf(outfp, pfEXTRN, extrns[i]);
+  		}
+	}
+}
