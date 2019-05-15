@@ -60,8 +60,8 @@ list: base		 			1 {}
 
 base: expr					1 {}
 
-expr: CALL(ID, args)		1 { fprintf(outfp, pfCALL pfTRASH pfPUSH, mkfunc(LEFT_CHILD(p)->value.s), 4 /*TODO*/); }
-expr: ATR(INT, ID)			1 { fprintf(outfp, pfIMM pfLOCAL pfSTORE, LEFT_CHILD(p)->value.i, -4 /*TODO*/); }
+expr: CALL(ID, args)		3 { fprintf(outfp, pfCALL pfTRASH pfPUSH, mkfunc(LEFT_CHILD(p)->value.s), 4 /*TODO*/); }
+expr: ATR(INT, ID)			2 { fprintf(outfp, pfIMM pfLOCAL pfSTORE, LEFT_CHILD(p)->value.i, -4 /*TODO*/); }
 expr: STR 					1 { lbl++; fprintf(outfp, pfRODATA pfALIGN pfLABEL, mklbl(lbl)); outstr(p->value.s); fprintf(outfp, pfTEXT pfADDR, mklbl(lbl)); }
 
 args: ARGS(NIL, expr)		1 {}

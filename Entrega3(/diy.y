@@ -120,7 +120,16 @@ decls :            			{ $$ = 0; }
 param : tipo ID 	{ 
 						$$ = binNode(PARAM, $1, strNode(ID, $2));
                     	IDnew($1->value.i, $2, 0);
-                    	if (IDlevel() == 1) fpar[++fpar[0]] = $1->value.i;
+                    	if (IDlevel() == 1){
+                    		fpar[++fpar[0]] = $1->value.i;
+
+                    		if($1->value.i == 3){
+                    			fpar[1] += -8;
+                    		}
+                    		else{
+                    			fpar[1] += -4;
+                    		}
+                    	}
                     }
 	 ;
 
@@ -261,9 +270,10 @@ void declare(int pub, int cnst, Node *type, char *name, Node *value){
 
 void enter(int pub, int typ, char *name) {
 
-	fpar = malloc(32); /* 31 arguments, at most */
+	fpar = malloc(33); /* 31 arguments, at most */
 
-	fpar[0] = 0; /* argument count */
+	fpar[0] = 1; /* argument count + 1*/
+	fpar[1] = 0; /* total size required to store arguments */
 
 	if(IDfind(name, (long*)IDtest) < 20){
 		IDnew(typ + 20, name, (long)fpar);
@@ -271,8 +281,18 @@ void enter(int pub, int typ, char *name) {
 
 	IDpush();
 
+	/* if the return type isn't void */
 	if (typ != 4){
-		IDnew(typ, name, 0);
+		long pos;
+
+		if(typ == 3){
+			pos = -8;
+		}
+		else{
+			pos = -4;
+		}
+
+		IDnew(typ, name, pos);
 	}
 }
 
@@ -376,14 +396,22 @@ void function(int pub, Node *type, char *name, Node *body){
 
 		long par;
 		int fwd = IDfind(name, &par);
+		int enter;
 
 		if (fwd > 40){
 			yyerror("duplicate function");
 		} 
 		else {
 			IDreplace(fwd + 40, name, par);
-		}
 
-		enterFunction(name, 4 /*TODO*/, bloco);
+			if(type->value.i == 3){
+				enter = 8;
+			}
+			else{
+				enter = 4;
+			}
+
+			enterFunction(name, enter /*TODO*/, bloco);
+		}
 	}
 }
