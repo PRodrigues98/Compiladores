@@ -8,7 +8,7 @@
 #include "tabid.h"
 
 extern int yylex();
-extern void enterFunction(char *name, int enter, Node *stmt);
+extern void enterFunction(int pub, char *name, int enter, Node *stmt);
 extern char *dupstr(const char *s);
 extern char *mkfunc(char *s);
 
@@ -28,6 +28,9 @@ void function(int pub, Node *type, char *name, Node *body);
 
 static int ncicl;
 static char *fpar;
+
+int argPos;
+int pos;
 
 %}
 
@@ -68,12 +71,12 @@ completeFile : file 	{ externs(); }
 
 file	:
 		| file error ';'
-		| file public tipo ID ';'										{ IDnew($3->value.i, $4, 0); declare($2, 0, $3, $4, 0); }
-		| file public CONST tipo ID ';'									{ IDnew($4->value.i+5, $5, 0); declare($2, 1, $4, $5, 0); }
+		| file public tipo ID ';'										{ if($2) extrns[extcnt++] = dupstr($4); IDnew($3->value.i, $4, 0); declare($2, 0, $3, $4, 0); }
+		| file public CONST tipo ID ';'									{ if($2) extrns[extcnt++] = dupstr($5); IDnew($4->value.i+5, $5, 0); declare($2, 1, $4, $5, 0); }
 		| file public tipo ID init										{ IDnew($3->value.i, $4, 0); declare($2, 0, $3, $4, $5); }
 		| file public CONST tipo ID init								{ IDnew($4->value.i+5, $5, 0); declare($2, 1, $4, $5, $6); }
-		| file public tipo ID { enter($2, $3->value.i, $4); } finit 	{ extrns[extcnt++] = dupstr(mkfunc($4)); function($2, $3, $4, $6); }
-		| file public VOID ID { enter($2, 4, $4); } finit				{ extrns[extcnt++] = dupstr(mkfunc($4)); function($2, intNode(VOID, 4), $4, $6); }
+		| file public tipo ID { enter($2, $3->value.i, $4); } finit 	{ if($2 || !RIGHT_CHILD($6)) extrns[extcnt++] = dupstr(mkfunc($4)); function($2, $3, $4, $6); }
+		| file public VOID ID { enter($2, 4, $4); } finit				{ if($2 || !RIGHT_CHILD($6)) extrns[extcnt++] = dupstr(mkfunc($4)); function($2, intNode(VOID, 4), $4, $6); }
 		;
 
 public	:           { $$ = 0; }
@@ -118,18 +121,22 @@ decls :            			{ $$ = 0; }
 	  ;
 
 param : tipo ID 	{ 
+						long actualPos;
+
 						$$ = binNode(PARAM, $1, strNode(ID, $2));
-                    	IDnew($1->value.i, $2, 0);
-                    	if (IDlevel() == 1){
+
+						if(IDlevel() == 1){
                     		fpar[++fpar[0]] = $1->value.i;
 
-                    		if($1->value.i == 3){
-                    			fpar[1] += -8;
-                    		}
-                    		else{
-                    			fpar[1] += -4;
-                    		}
+                    		argPos += ($1->value.i == 3) ? 8 : 4;
+                    		actualPos = argPos;
                     	}
+                    	else{
+                    		pos -= ($1->value.i == 3) ? 8 : 4;
+                    		actualPos = pos;
+                    	}
+
+                    	IDnew($1->value.i, $2, actualPos);
                     }
 	 ;
 
@@ -169,16 +176,20 @@ list : base
 	 | list base     { $$ = binNode(';', $1, $2); }
 	 ;
 
-args : expr				{ $$ = binNode(',', nilNode(NIL), $1); }
-	 | args ',' expr 	{ $$ = binNode(',', $1, $3); }
+args : expr				{ $$ = binNode(',', nilNode(NIL), $1); $$->info = (($1->info % 10 >= 5 ? $1->info % 10 - 5 : $1->info % 10) == 3) ? 8 : 4; }
+	 | args ',' expr 	{ $$ = binNode(',', $1, $3); $$->info = $1->info + ((($3->info % 10 >= 5 ? $3->info % 10 - 5 : $3->info % 10) == 3) ? 8 : 4); }
 	 ;
 
 lv	: ID	{ 
 				long pos; 
 				int typ = IDfind($1, &pos);
 
-            	if (pos == 0) $$ = strNode(ID, $1);
-            	else $$ = intNode(LOCAL, pos);
+            	if(pos == 0){
+            		$$ = strNode(ID, $1);
+            	}
+            	else{
+            		$$ = intNode(LOCAL, pos);
+            	}
 
 				$$->info = typ;
 			}
@@ -187,17 +198,23 @@ lv	: ID	{
                             long pos; 
                             int siz, typ = IDfind($1, &pos);
 
-                            if (typ / 10 != 1 && typ % 5 != 2) yyerror("not a pointer");
+                            if(typ / 10 != 1 && typ % 5 != 2){
+                            	yyerror("not a pointer");
+                            }
 
-                            if (pos == 0) n = strNode(ID, $1);
-                            else n = intNode(LOCAL, pos);
+                            if(pos == 0){
+                            	n = strNode(ID, $1);
+                            }
+                            else{
+                            	n = intNode(LOCAL, pos);
+                            }
 
                             $$ = binNode('[', n, $3);
 
-			    			if (typ >= 10) typ -= 10;
-                            else if (typ % 5 == 2) typ = 1;
+			    			if(typ >= 10) typ -= 10;
+                            else if(typ % 5 == 2) typ = 1;
 
-			    			if (typ >= 5) typ -= 5;
+			    			if(typ >= 5) typ -= 5;
 
 			    			$$->info = typ;
 						}
@@ -232,7 +249,7 @@ expr	: lv					{ $$ = uniNode(PTR, $1); $$->info = $1->info; }
 	| expr '|' expr 			{ $$ = binNode('|', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
 	| '(' expr ')' 				{ $$ = $2; $$->info = $2->info; }
 	| ID '(' args ')' 			{ $$ = binNode(CALL, strNode(ID, $1), $3); $$->info = checkargs($1, $3); }
-	| ID '(' ')'    			{ $$ = binNode(CALL, strNode(ID, $1), nilNode(VOID)); $$->info = checkargs($1, 0); }
+	| ID '(' ')'    			{ $$ = binNode(CALL, strNode(ID, $1), intNode(VOID, 0)); $$->info = checkargs($1, 0); }
 	;
 
 %%
@@ -270,10 +287,9 @@ void declare(int pub, int cnst, Node *type, char *name, Node *value){
 
 void enter(int pub, int typ, char *name) {
 
-	fpar = malloc(33); /* 31 arguments, at most */
+	fpar = malloc(32); /* 31 arguments, at most */
 
-	fpar[0] = 1; /* argument count + 1*/
-	fpar[1] = 0; /* total size required to store arguments */
+	fpar[0] = 0; /* argument count*/
 
 	if(IDfind(name, (long*)IDtest) < 20){
 		IDnew(typ + 20, name, (long)fpar);
@@ -281,16 +297,13 @@ void enter(int pub, int typ, char *name) {
 
 	IDpush();
 
+	argPos = 8;
+	pos = 0;
+
 	/* if the return type isn't void */
 	if (typ != 4){
-		long pos;
 
-		if(typ == 3){
-			pos = -8;
-		}
-		else{
-			pos = -4;
-		}
+		pos -= (typ == 3) ? 8 : 4;
 
 		IDnew(typ, name, pos);
 	}
@@ -350,6 +363,7 @@ int checkargs(char *name, Node *args) {
 			yyerror("missing arguments");
 		}
 	}
+
 	return typ % 20;
 }
 
@@ -396,7 +410,6 @@ void function(int pub, Node *type, char *name, Node *body){
 
 		long par;
 		int fwd = IDfind(name, &par);
-		int enter;
 
 		if (fwd > 40){
 			yyerror("duplicate function");
@@ -404,14 +417,7 @@ void function(int pub, Node *type, char *name, Node *body){
 		else {
 			IDreplace(fwd + 40, name, par);
 
-			if(type->value.i == 3){
-				enter = 8;
-			}
-			else{
-				enter = 4;
-			}
-
-			enterFunction(name, enter /*TODO*/, bloco);
+			enterFunction(pub, name, -pos, bloco);
 		}
 	}
 }

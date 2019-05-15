@@ -53,22 +53,23 @@ char *mkfunc(char *s) {
 
 %%
 
-bloco:	BLOCK(list)			1 {}
+bloco: BLOCK(list)			1 {}
 
 list: LIST(list, base) 		1 {}
 list: base		 			1 {}
 
 base: expr					1 {}
 
-expr: CALL(ID, args)		3 { fprintf(outfp, pfCALL pfTRASH pfPUSH, mkfunc(LEFT_CHILD(p)->value.s), 4 /*TODO*/); }
-expr: ATR(INT, ID)			2 { fprintf(outfp, pfIMM pfLOCAL pfSTORE, LEFT_CHILD(p)->value.i, -4 /*TODO*/); }
+expr: CALL(ID, args)		3 { fprintf(outfp, pfCALL pfTRASH pfPUSH, mkfunc(LEFT_CHILD(p)->value.s), RIGHT_CHILD(p)->info); }
+expr: ATR(INT, LOCAL)		2 { fprintf(outfp, pfIMM pfLOCAL pfSTORE, LEFT_CHILD(p)->value.i, RIGHT_CHILD(p)->value.i); }
+expr: ATR(INT, ID)			2 { fprintf(outfp, pfIMM pfADDR pfSTORE, LEFT_CHILD(p)->value.i, RIGHT_CHILD(p)->value.s); }
 expr: STR 					1 { lbl++; fprintf(outfp, pfRODATA pfALIGN pfLABEL, mklbl(lbl)); outstr(p->value.s); fprintf(outfp, pfTEXT pfADDR, mklbl(lbl)); }
 
 args: ARGS(NIL, expr)		1 {}
 
 %%
 
-void enterFunction(char *name, int enter, Node *stmt) {
+void enterFunction(int pub, char *name, int enter, Node *stmt) {
  	int i;
 
  	extern int errors, trace;
@@ -86,7 +87,12 @@ void enterFunction(char *name, int enter, Node *stmt) {
 
 	char *funcName = mkfunc(name);
 
-	fprintf(outfp, pfTEXT pfALIGN pfGLOBL pfLABEL pfENTER, funcName, pfFUNC, funcName, enter * (pfWORD/4));
+	if(pub){
+		fprintf(outfp, pfTEXT pfALIGN pfGLOBL pfLABEL pfENTER, funcName, pfFUNC, funcName, enter * (pfWORD/4));
+	}
+	else{
+		fprintf(outfp, pfTEXT pfALIGN pfLABEL pfENTER, funcName, enter * (pfWORD/4));
+	}
 
 	yyselect(stmt);
 
@@ -108,5 +114,54 @@ void externs(){
   		if (extrns[i]){
     		fprintf(outfp, pfEXTRN, extrns[i]);
   		}
+	}
+}
+
+void variable(int pub, char *name, Node *vc, Node *init){
+	int i = 0, siz = 1;
+
+	if(vc->info % 10 >= 5){
+		fprintf(outfp, pfRODATA);
+	}
+	else{
+		fprintf(outfp, pfDATA);
+	}
+
+	if(pub){
+		fprintf(outfp, pfGLOBL pfALIGN pfLABEL, name, pfOBJ, name);
+	}
+	else{
+		fprintf(outfp, pfALIGN pfLABEL, name);
+	}
+/*
+	if(vc->info == ){
+		siz = vc->value.i;
+	}
+*/
+	if(init){
+		switch (init->info){
+			case 1:
+				fprintf(outfp, pfINTEGER, init->CHILD(i)->value.i);
+				break;
+
+			case 2: 
+				fprintf(outfp, pfID, init->CHILD(i)->value.s);
+				break;
+
+			case 3:
+				{char *l = mklbl(++lbl);
+
+				fprintf(outfp, pfRODATA pfALIGN pfLABEL, l);
+				outstr(init->CHILD(i)->value.s);
+				fprintf(outfp, pfDATA pfID, l); 
+
+				break;}
+		}
+	}
+
+	for (i = 0; i < extcnt; i++){
+		if (extrns[i] && strcmp(extrns[i], name) == 0){
+			extrns[i] = 0;
+		}
 	}
 }
