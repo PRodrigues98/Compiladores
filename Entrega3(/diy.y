@@ -7,14 +7,16 @@
 #include "node.h"
 #include "tabid.h"
 
+
 extern int yylex();
-extern void enterFunction(int pub, char *name, int enter, Node *stmt);
+extern void enterFunction(int pub, char *name, int enter, int retPos, Node *type, Node *stmt);
 extern char *dupstr(const char *s);
 extern char *mkfunc(char *s);
+extern void variable(int pub, int cnst, char *name, Node *type, Node *init);
+extern void externs();
 
 extern char *extrns[100]; /* emit externs at the end only */
 extern int extcnt;
-extern void externs();
 
 
 void yyerror(char *s);
@@ -45,7 +47,7 @@ int pos;
 %token <r> REAL
 %token <s> ID STR
 %token DO WHILE IF THEN FOR IN UPTO DOWNTO STEP BREAK CONTINUE
-%token VOID INTEGER STRING NUMBER CONST PUBLIC INCR DECR
+%token VOID INTEGER STRING NUMBER CONST PUBLIC INCR DECR DECLS
 %nonassoc IFX
 %nonassoc ELSE
 
@@ -75,8 +77,8 @@ file	:
 		| file public CONST tipo ID ';'									{ if($2) extrns[extcnt++] = dupstr($5); IDnew($4->value.i+5, $5, 0); declare($2, 1, $4, $5, 0); }
 		| file public tipo ID init										{ IDnew($3->value.i, $4, 0); declare($2, 0, $3, $4, $5); }
 		| file public CONST tipo ID init								{ IDnew($4->value.i+5, $5, 0); declare($2, 1, $4, $5, $6); }
-		| file public tipo ID { enter($2, $3->value.i, $4); } finit 	{ if($2 || !RIGHT_CHILD($6)) extrns[extcnt++] = dupstr(mkfunc($4)); function($2, $3, $4, $6); }
-		| file public VOID ID { enter($2, 4, $4); } finit				{ if($2 || !RIGHT_CHILD($6)) extrns[extcnt++] = dupstr(mkfunc($4)); function($2, intNode(VOID, 4), $4, $6); }
+		| file public tipo ID { enter($2, $3->value.i, $4); } finit 	{ if($2 || RIGHT_CHILD($6)->attrib == NIL) extrns[extcnt++] = dupstr(mkfunc($4)); function($2, $3, $4, $6); }
+		| file public VOID ID { enter($2, 4, $4); } finit				{ if($2 || RIGHT_CHILD($6)->attrib == NIL) extrns[extcnt++] = dupstr(mkfunc($4)); function($2, intNode(VOID, 4), $4, $6); }
 		;
 
 public	:           { $$ = 0; }
@@ -102,10 +104,10 @@ init : ATR ID ';'			{ $$ = strNode(ID, $2); $$->info = IDfind($2, 0) + 10; }
 	 ;
 
 finit : '(' params ')' blocop 	{ $$ = binNode('(', $4, $2); }
-	  | '(' ')' blocop        	{ $$ = binNode('(', $3, 0); }
+	  | '(' ')' blocop        	{ Node *n = nilNode(NIL); n->info = 0; $$ = binNode('(', $3, n); }
 	  ;
 
-blocop : ';'   	  	 { $$ = 0; }
+blocop : ';'   	  	 { $$ = nilNode(NIL); }
        | bloco ';'   { $$ = $1; }
        ;
 
@@ -113,11 +115,11 @@ params : param
 	   | params ',' param      { $$ = binNode(',', $1, $3); }
 	   ;
 
-bloco : '{' { IDpush(); } decls list end '}'    { $$ = binNode('{', $5 ? binNode(';', $4, $5) : $4, $3); IDpop(); }
+bloco : '{' { IDpush(); } decls list end '}'    { $$ = uniNode('{', $5 ? binNode(';', $4, $5) : $4); IDpop(); }
 	  ;
 
-decls :            			{ $$ = 0; }
-	  | decls param ';'		{ $$ = binNode(';', $1, $2); }
+decls :
+	  | decls param ';'
 	  ;
 
 param : tipo ID 	{ 
@@ -128,8 +130,9 @@ param : tipo ID 	{
 						if(IDlevel() == 1){
                     		fpar[++fpar[0]] = $1->value.i;
 
-                    		argPos += ($1->value.i == 3) ? 8 : 4;
                     		actualPos = argPos;
+
+                    		argPos += ($1->value.i == 3) ? 8 : 4;
                     	}
                     	else{
                     		pos -= ($1->value.i == 3) ? 8 : 4;
@@ -176,8 +179,8 @@ list : base
 	 | list base     { $$ = binNode(';', $1, $2); }
 	 ;
 
-args : expr				{ $$ = binNode(',', nilNode(NIL), $1); $$->info = (($1->info % 10 >= 5 ? $1->info % 10 - 5 : $1->info % 10) == 3) ? 8 : 4; }
-	 | args ',' expr 	{ $$ = binNode(',', $1, $3); $$->info = $1->info + ((($3->info % 10 >= 5 ? $3->info % 10 - 5 : $3->info % 10) == 3) ? 8 : 4); }
+args : expr				{ $$ = binNode(',', $1, nilNode(NIL)); $$->info = ($1->info % 5 == 3) ? 8 : 4; }
+	 | args ',' expr 	{ $$ = binNode(',', $3, $1); $$->info = $1->info + (($3->info % 5 == 3) ? 8 : 4); }
 	 ;
 
 lv	: ID	{ 
@@ -196,7 +199,7 @@ lv	: ID	{
 	| ID '[' expr ']'	{ 
 							Node *n;
                             long pos; 
-                            int siz, typ = IDfind($1, &pos);
+                            int typ = IDfind($1, &pos);
 
                             if(typ / 10 != 1 && typ % 5 != 2){
                             	yyerror("not a pointer");
@@ -221,7 +224,7 @@ lv	: ID	{
 	;
 
 expr	: lv					{ $$ = uniNode(PTR, $1); $$->info = $1->info; }
-	| '*' lv        			{ $$ = uniNode(PTR, uniNode(PTR, $2)); if ($2->info % 5 == 2) $$->info = 1; else if ($2->info / 10 == 1) $$->info = $2->info % 10; else yyerror("can dereference lvalue"); }
+	| '*' lv        			{ $$ = uniNode(PTR, uniNode(PTR, $2)); if ($2->info % 5 == 2) $$->info = 1; if ($2->info / 10 == 1) $$->info = $2->info % 10; else yyerror("can dereference lvalue"); }
 	| lv ATR expr   			{ $$ = binNode(ATR, $3, $1); if ($$->info % 10 > 5) yyerror("constant value to assignment"); if (noassign($1, $3)) yyerror("illegal assignment"); $$->info = $1->info; }
 	| INT          			 	{ $$ = intNode(INT, $1); $$->info = 1; }
 	| STR           			{ $$ = strNode(STR, $1); $$->info = 2; }
@@ -269,20 +272,33 @@ void declare(int pub, int cnst, Node *type, char *name, Node *value){
     		yyerror("local constants must be initialised");
     	}
 
+		variable(pub, cnst, name, type, value);
+
     	return;
 	}
 
-	if (value->attrib = INT && value->value.i == 0 && type->value.i > 10){
-  		return; /* NULL pointer */
+	if (value->attrib == INT && value->value.i == 0 && (type->value.i > 10 || type->value.i == 2)){
+
+		variable(pub, cnst, name, type, value);
+
+  		return; /* NULL pointer and NULL string */
 	}
 
 	if((typ = value->info) % 10 > 5){
 		typ -= 5;
 	}
 
+	if(typ == 11 && type->value.i % 10 == 3){
+		variable(pub, cnst, name, type, value);
+
+		return;
+	}
+
 	if (type->value.i != typ){
 		yyerror("wrong types in initialization");
 	}
+
+	variable(pub, cnst, name, type, value);
 }
 
 void enter(int pub, int typ, char *name) {
@@ -340,7 +356,7 @@ int checkargs(char *name, Node *args) {
 				break;
 			}
 
-			n = RIGHT_CHILD(args);
+			n = LEFT_CHILD(args);
 
 			typ = n->info;
 
@@ -354,7 +370,7 @@ int checkargs(char *name, Node *args) {
 				break;
 			}
 
-			args = LEFT_CHILD(args);
+			args = RIGHT_CHILD(args);
 			i--;
 
 		} while (args->attrib != NIL);
@@ -404,9 +420,13 @@ int noassign(Node *arg1, Node *arg2) {
 void function(int pub, Node *type, char *name, Node *body){
 	Node *bloco = LEFT_CHILD(body);
 
+	long retPos;
+
+	IDfind(name, &retPos);
+
 	IDpop();
 
-	if (bloco != 0) { /* not a forward declaration */
+	if (bloco->attrib != NIL){ /* not a forward declaration */
 
 		long par;
 		int fwd = IDfind(name, &par);
@@ -417,7 +437,7 @@ void function(int pub, Node *type, char *name, Node *body){
 		else {
 			IDreplace(fwd + 40, name, par);
 
-			enterFunction(pub, name, -pos, bloco);
+			enterFunction(pub, name, -pos, (int)retPos, type, bloco);
 		}
 	}
 }
