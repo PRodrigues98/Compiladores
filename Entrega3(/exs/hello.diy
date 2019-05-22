@@ -21,8 +21,6 @@ public integer entry (integer argc, string *argv, string *envp) {
 
 	if k - 12 <> 0 then prints("if simples - Não devia imprimir\n\n")
 
-	
-
 	printi(i)
 	prints(" == ")
 	printi(*j)

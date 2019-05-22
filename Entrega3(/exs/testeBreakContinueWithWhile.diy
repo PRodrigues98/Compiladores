@@ -1,0 +1,41 @@
+public void prints(string s)
+public void printi(integer i)
+public void println()
+
+
+public integer entry (integer argc, string *argv, string *envp) {
+
+	integer i
+	integer j
+	integer k
+
+	i := 0
+
+	do {
+
+		j := 1
+
+		do {
+			if j = 3 then {
+				j := j + 1
+				continue;
+			}
+
+			printi(i)
+			printi(j)
+			prints(" ")
+
+			if j >= 5 then break;
+
+			j := j + 1
+
+		} while(1)
+
+		i := i + 1
+
+	} while i < 5
+
+	prints("\nexpected 01 02 04 05 11 12 14 15 ...\n")
+
+	entry := 0
+};

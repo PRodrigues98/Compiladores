@@ -63,7 +63,7 @@ int pos;
 %nonassoc '[' '('
 
 %type <n> tipo init finit blocop params
-%type <n> bloco decls param base stmt step args list end brk lv expr
+%type <n> bloco param base stmt step args list end brk lv expr
 %type <i> ptr intp public
 
 %token LOCAL POSINC POSDEC PTR CALL START PARAM NIL
@@ -183,7 +183,7 @@ args : expr				{ $$ = binNode(',', $1, nilNode(NIL)); $$->info = ($1->info % 5 =
 	 | args ',' expr 	{ $$ = binNode(',', $3, $1); $$->info = $1->info + (($3->info % 5 == 3) ? 8 : 4); }
 	 ;
 
-lv	: ID	{ 
+lv : ID	 	{ 
 				long pos; 
 				int typ = IDfind($1, &pos);
 
@@ -196,7 +196,7 @@ lv	: ID	{
 
 				$$->info = typ;
 			}
-	| ID '[' expr ']'	{ 
+   | ID '[' expr ']'	{ 
 							Node *n;
                             long pos; 
                             int typ = IDfind($1, &pos);
@@ -223,37 +223,37 @@ lv	: ID	{
 						}
 	;
 
-expr	: lv					{ $$ = uniNode(PTR, $1); $$->info = $1->info; }
-	| '*' lv        			{ $$ = uniNode(PTR, uniNode(PTR, $2)); if ($2->info % 5 == 2) $$->info = 1; if ($2->info / 10 == 1) $$->info = $2->info % 10; else yyerror("can dereference lvalue"); }
-	| lv ATR expr   			{ $$ = binNode(ATR, $3, $1); if ($$->info % 10 > 5) yyerror("constant value to assignment"); if (noassign($1, $3)) yyerror("illegal assignment"); $$->info = $1->info; }
-	| INT          			 	{ $$ = intNode(INT, $1); $$->info = 1; }
-	| STR           			{ $$ = strNode(STR, $1); $$->info = 2; }
-	| REAL          			{ $$ = realNode(REAL, $1); $$->info = 3; }
-	| '-' expr %prec UMINUS		{ $$ = uniNode(UMINUS, $2); $$->info = $2->info; nostring($2, $2);}
-	| '~' expr %prec UMINUS 	{ $$ = uniNode(NOT, $2); $$->info = intonly($2, 0); }
-	| '&' lv %prec UMINUS   	{ $$ = uniNode(REF, $2); $$->info = $2->info + 10; }
-	| expr '!'             		{ $$ = uniNode('!', $1); $$->info = 3; intonly($1, 0); }
-	| INCR lv       			{ $$ = uniNode(INCR, $2); $$->info = intonly($2, 1); }
-	| DECR lv       			{ $$ = uniNode(DECR, $2); $$->info = intonly($2, 1); }
-	| lv INCR       			{ $$ = uniNode(POSINC, $1); $$->info = intonly($1, 1); }
-	| lv DECR       			{ $$ = uniNode(POSDEC, $1); $$->info = intonly($1, 1); }
-	| expr '+' expr 			{ $$ = binNode('+', $1, $3); $$->info = nostring($1, $3); }
-	| expr '-' expr 			{ $$ = binNode('-', $1, $3); $$->info = nostring($1, $3); }
-	| expr '*' expr 			{ $$ = binNode('*', $1, $3); $$->info = nostring($1, $3); }
-	| expr '/' expr 			{ $$ = binNode('/', $1, $3); $$->info = nostring($1, $3); }
-	| expr '%' expr 			{ $$ = binNode('%', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
-	| expr '<' expr 			{ $$ = binNode('<', $1, $3); $$->info = 1; }
-	| expr '>' expr 			{ $$ = binNode('>', $1, $3); $$->info = 1; }
-	| expr GE expr  			{ $$ = binNode(GE, $1, $3); $$->info = 1; }
-	| expr LE expr  			{ $$ = binNode(LE, $1, $3); $$->info = 1; }
-	| expr NE expr  			{ $$ = binNode(NE, $1, $3); $$->info = 1; }
-	| expr '=' expr 			{ $$ = binNode('=', $1, $3); $$->info = 1; }
-	| expr '&' expr 			{ $$ = binNode('&', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
-	| expr '|' expr 			{ $$ = binNode('|', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
-	| '(' expr ')' 				{ $$ = $2; $$->info = $2->info; }
-	| ID '(' args ')' 			{ $$ = binNode(CALL, strNode(ID, $1), $3); $$->info = checkargs($1, $3); }
-	| ID '(' ')'    			{ $$ = binNode(CALL, strNode(ID, $1), intNode(VOID, 0)); $$->info = checkargs($1, 0); }
-	;
+expr : lv						{ $$ = uniNode(PTR, $1); $$->info = $1->info; }
+	 | '*' lv        			{ $$ = uniNode(PTR, uniNode(PTR, $2)); if ($2->info / 10 == 1) $$->info = $2->info % 10; else if ($2->info % 5 == 2) $$->info = 1; else yyerror("can dereference lvalue"); }
+	 | lv ATR expr   			{ $$ = binNode(ATR, $3, $1); if ($$->info % 10 > 5) yyerror("constant value to assignment"); if (noassign($1, $3)) yyerror("illegal assignment"); $$->info = $1->info; }
+	 | INT          			{ $$ = intNode(INT, $1); $$->info = 1; }
+	 | STR           			{ $$ = strNode(STR, $1); $$->info = 2; }
+	 | REAL          			{ $$ = realNode(REAL, $1); $$->info = 3; }
+	 | '-' expr %prec UMINUS	{ $$ = uniNode(UMINUS, $2); $$->info = $2->info; nostring($2, $2);}
+	 | '~' expr %prec UMINUS 	{ $$ = uniNode(NOT, $2); $$->info = intonly($2, 0); }
+	 | '&' lv %prec UMINUS   	{ $$ = uniNode(REF, $2); $$->info = $2->info + 10; }
+	 | expr '!'             	{ $$ = uniNode('!', $1); $$->info = 3; intonly($1, 0); }
+	 | INCR lv       			{ $$ = uniNode(INCR, $2); $$->info = intonly($2, 1); }
+	 | DECR lv       			{ $$ = uniNode(DECR, $2); $$->info = intonly($2, 1); }
+	 | lv INCR       			{ $$ = uniNode(POSINC, $1); $$->info = intonly($1, 1); }
+	 | lv DECR       			{ $$ = uniNode(POSDEC, $1); $$->info = intonly($1, 1); }
+	 | expr '+' expr 			{ $$ = binNode('+', $1, $3); $$->info = nostring($1, $3); }
+	 | expr '-' expr 			{ $$ = binNode('-', $1, $3); $$->info = nostring($1, $3); }
+	 | expr '*' expr 			{ $$ = binNode('*', $1, $3); $$->info = nostring($1, $3); }
+	 | expr '/' expr 			{ $$ = binNode('/', $1, $3); $$->info = nostring($1, $3); }
+	 | expr '%' expr 			{ $$ = binNode('%', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
+	 | expr '<' expr 			{ $$ = binNode('<', $1, $3); $$->info = 1; }
+	 | expr '>' expr 			{ $$ = binNode('>', $1, $3); $$->info = 1; }
+	 | expr GE expr  			{ $$ = binNode(GE, $1, $3); $$->info = 1; }
+	 | expr LE expr  			{ $$ = binNode(LE, $1, $3); $$->info = 1; }
+	 | expr NE expr  			{ $$ = binNode(NE, $1, $3); $$->info = 1; }
+	 | expr '=' expr 			{ $$ = binNode('=', $1, $3); $$->info = 1; }
+	 | expr '&' expr 			{ $$ = binNode('&', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
+	 | expr '|' expr 			{ $$ = binNode('|', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
+	 | '(' expr ')' 			{ $$ = $2; $$->info = $2->info; }
+	 | ID '(' args ')' 			{ $$ = binNode(CALL, strNode(ID, $1), $3); $$->info = checkargs($1, $3); }
+	 | ID '(' ')'    			{ $$ = binNode(CALL, strNode(ID, $1), intNode(VOID, 0)); $$->info = checkargs($1, 0); }
+	 ;
 
 %%
 

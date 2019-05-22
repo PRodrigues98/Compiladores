@@ -1,0 +1,14 @@
+public void prints(string s)
+public void printi(integer i)
+public void println()
+
+public integer entry (integer argc, string *argv, string *envp) {
+
+	string s
+
+	s := "ariavel local\n"
+
+	printi(s[1])
+
+	entry := 0
+};
