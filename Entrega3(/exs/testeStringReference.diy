@@ -6,9 +6,18 @@ public integer entry (integer argc, string *argv, string *envp) {
 
 	string s
 
-	s := "ariavel local\n"
+	s := "Variavel local\n"
+
+	printi(*s)
+	prints("\nExpected: 86 (V)\n")
 
 	printi(s[1])
+	prints("\nExpected: 97 (a)\n")
+
+	printi(s[2])
+	prints("\nExpected: 114 (r)")
+
+	println()
 
 	entry := 0
 };

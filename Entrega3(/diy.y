@@ -149,8 +149,41 @@ stmt : base
 
 base : ';'                   									{ $$ = nilNode(VOID); }
 	 | DO { ncicl++; } stmt WHILE expr ';'						{ $$ = binNode(WHILE, binNode(DO, nilNode(START), $3), $5); ncicl--; }
-	 | FOR lv IN expr UPTO expr step DO { ncicl++; } stmt		{ $$ = binNode(';', binNode(ATR, $4, $2), binNode(FOR, binNode(IN, nilNode(START), binNode(LE, uniNode(PTR, $2), $6)), binNode(';', $10, binNode(ATR, binNode('+', uniNode(PTR, $2), $7), $2)))); ncicl--; }
-	 | FOR lv IN expr DOWNTO expr step DO { ncicl++; } stmt		{ $$ = binNode(';', binNode(ATR, $4, $2), binNode(FOR, binNode(IN, nilNode(START), binNode(GE, uniNode(PTR, $2), $6)), binNode(';', $10, binNode(ATR, binNode('-', uniNode(PTR, $2), $7), $2)))); ncicl--; }
+	 | FOR lv IN expr UPTO expr step DO { ncicl++; } stmt		{ 
+	 																Node *p1 = uniNode(PTR, $2);
+	 																p1->info = $2->info;
+
+	 																Node *p2 = uniNode(PTR, $2);
+	 																p2->info = $2->info;
+
+	 																Node *a1 = binNode(ATR, $4, $2);
+	 																a1->info = $2->info;
+
+	 																Node *a2 = binNode(ATR, binNode('+', p2, $7), $2);
+	 																a2->info = $2->info;
+
+	 																$$ = binNode(';', a1, binNode(FOR, binNode(IN, nilNode(START), binNode(LE, p1, $6)), binNode(';', $10, a2))); 
+
+	 																ncicl--; 
+	 															}
+	 | FOR lv IN expr DOWNTO expr step DO { ncicl++; } stmt		{ 
+
+	 																Node *p1 = uniNode(PTR, $2);
+	 																p1->info = $2->info;
+
+	 																Node *p2 = uniNode(PTR, $2);
+	 																p2->info = $2->info;
+
+	 																Node *a1 = binNode(ATR, $4, $2);
+	 																a1->info = $2->info;
+
+	 																Node *a2 = binNode(ATR, binNode('-', p2, $7), $2);
+	 																a2->info = $2->info;
+
+	 																$$ = binNode(';', a1, binNode(FOR, binNode(IN, nilNode(START), binNode(GE, p1, $6)), binNode(';', $10, a2))); 
+
+	 																ncicl--; 
+	 															}
 	 | IF expr THEN stmt %prec IFX    							{ $$ = binNode(IF, $2, $4); }
 	 | IF expr THEN stmt ELSE stmt    							{ $$ = binNode(ELSE, binNode(IF, $2, $4), $6); }
 	 | expr ';'        	{ $$ = $1; }
@@ -212,7 +245,9 @@ lv : ID	 	{
                             	n = intNode(LOCAL, pos);
                             }
 
-                            $$ = binNode('[', n, $3);
+                            $$ = binNode('[', uniNode(PTR, n), $3);
+
+                            LEFT_CHILD($$)->info = typ;
 
 			    			if(typ >= 10) typ -= 10;
                             else if(typ % 5 == 2) typ = 1;
@@ -224,7 +259,7 @@ lv : ID	 	{
 	;
 
 expr : lv						{ $$ = uniNode(PTR, $1); $$->info = $1->info; }
-	 | '*' lv        			{ $$ = uniNode(PTR, uniNode(PTR, $2)); if ($2->info / 10 == 1) $$->info = $2->info % 10; else if ($2->info % 5 == 2) $$->info = 1; else yyerror("can dereference lvalue"); }
+	 | '*' lv        			{ $$ = uniNode(PTR, uniNode(PTR, $2)); LEFT_CHILD($$)->info = $2->info; if ($2->info / 10 == 1) $$->info = $2->info % 10; else if ($2->info % 5 == 2) $$->info = 1; else yyerror("can dereference lvalue"); }
 	 | lv ATR expr   			{ $$ = binNode(ATR, $3, $1); if ($$->info % 10 > 5) yyerror("constant value to assignment"); if (noassign($1, $3)) yyerror("illegal assignment"); $$->info = $1->info; }
 	 | INT          			{ $$ = intNode(INT, $1); $$->info = 1; }
 	 | STR           			{ $$ = strNode(STR, $1); $$->info = 2; }
@@ -232,7 +267,7 @@ expr : lv						{ $$ = uniNode(PTR, $1); $$->info = $1->info; }
 	 | '-' expr %prec UMINUS	{ $$ = uniNode(UMINUS, $2); $$->info = $2->info; nostring($2, $2);}
 	 | '~' expr %prec UMINUS 	{ $$ = uniNode(NOT, $2); $$->info = intonly($2, 0); }
 	 | '&' lv %prec UMINUS   	{ $$ = uniNode(REF, $2); $$->info = $2->info + 10; }
-	 | expr '!'             	{ $$ = uniNode('!', $1); $$->info = 3; intonly($1, 0); }
+	 | expr '!'             	{ $$ = uniNode('!', $1); $$->info = 3; intonly($1, 0); extrns[extcnt++] = dupstr("_factorial"); }
 	 | INCR lv       			{ $$ = uniNode(INCR, $2); $$->info = intonly($2, 1); }
 	 | DECR lv       			{ $$ = uniNode(DECR, $2); $$->info = intonly($2, 1); }
 	 | lv INCR       			{ $$ = uniNode(POSINC, $1); $$->info = intonly($1, 1); }
@@ -242,12 +277,12 @@ expr : lv						{ $$ = uniNode(PTR, $1); $$->info = $1->info; }
 	 | expr '*' expr 			{ $$ = binNode('*', $1, $3); $$->info = nostring($1, $3); }
 	 | expr '/' expr 			{ $$ = binNode('/', $1, $3); $$->info = nostring($1, $3); }
 	 | expr '%' expr 			{ $$ = binNode('%', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
-	 | expr '<' expr 			{ $$ = binNode('<', $1, $3); $$->info = 1; }
-	 | expr '>' expr 			{ $$ = binNode('>', $1, $3); $$->info = 1; }
-	 | expr GE expr  			{ $$ = binNode(GE, $1, $3); $$->info = 1; }
-	 | expr LE expr  			{ $$ = binNode(LE, $1, $3); $$->info = 1; }
-	 | expr NE expr  			{ $$ = binNode(NE, $1, $3); $$->info = 1; }
-	 | expr '=' expr 			{ $$ = binNode('=', $1, $3); $$->info = 1; }
+	 | expr '<' expr 			{ $$ = binNode('<', $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) extrns[extcnt++] = dupstr("_strcmp");}
+	 | expr '>' expr 			{ $$ = binNode('>', $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) extrns[extcnt++] = dupstr("_strcmp");}
+	 | expr GE expr  			{ $$ = binNode(GE, $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) extrns[extcnt++] = dupstr("_strcmp");}
+	 | expr LE expr  			{ $$ = binNode(LE, $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) extrns[extcnt++] = dupstr("_strcmp");}
+	 | expr NE expr  			{ $$ = binNode(NE, $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) extrns[extcnt++] = dupstr("_strcmp");}
+	 | expr '=' expr 			{ $$ = binNode('=', $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) extrns[extcnt++] = dupstr("_strcmp");}
 	 | expr '&' expr 			{ $$ = binNode('&', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
 	 | expr '|' expr 			{ $$ = binNode('|', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
 	 | '(' expr ')' 			{ $$ = $2; $$->info = $2->info; }

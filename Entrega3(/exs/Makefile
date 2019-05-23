@@ -7,18 +7,31 @@ AS=nasm -felf32 # assembler command
 LD=ld -melf_i386 # loader command
 
 
-#SRC= Test/Tstring.diy
-#SRC= Test/Tcontinue.diy 
+#SRC= Test/Tblock.diy
 #SRC= Test/Tbreak.diy 
-#SRC= Test/Toperation.diy 
+#SRC= Test/Tcontinue.diy
+#SRC= Test/Tdoubleop.diy
+#SRC= Test/Texterns.diy
 #SRC= Test/Tfor.diy 
-#SRC= Test/Tvariables.diy 
+#SRC= Test/Tif.diy 
 #SRC= Test/Tincr.diy 
+#SRC= Test/Tlocal.diy 
+#SRC= Test/Tmean.diy 
+#SRC= Test/Toperation.diy 
+#SRC= Test/Tref.diy
+#SRC= Test/Tstring.diy
+#SRC= Test/Tvariables.diy 
+#SRC= Test/Twhile.diy 
+
+
 #SRC= testeAndOr.diy 
 #SRC= testeBreakContinueWithWhile.diy 
 #SRC= ack.diy
 #SRC= hello.diy 
-SRC= testeString.diy
+#SRC= testeStringReference.diy
+#SRC= testeAlloc.diy
+#SRC= factorial.diy
+SRC= testeStringComparisons.diy
 
 EXE=$(SRC:%.diy=%)
 

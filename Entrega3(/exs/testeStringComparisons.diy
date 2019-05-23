@@ -1,0 +1,29 @@
+public void prints(string s)
+public void printi(integer i)
+public void printd(number d)
+public void println()
+
+public integer entry (integer argc, string *argv, string *envp) {
+
+	string s1
+	string s2
+
+	s1 := "a"
+	s2 := "b"
+
+	printi(s1 > s2)
+
+	prints("\nExpected: 1\n\n")
+
+	s1 := "a"
+	s2 := "d"
+
+	printi(s1 > s2)
+
+	prints("\nExpected: 3\n\n")
+
+	printd(4!)
+	prints("\nExpected: 2.4E1\n\n")
+
+	entry := 0
+};
