@@ -157,14 +157,12 @@ int IDforall(IDfunc f, long user, int skip, int lev) {
   }
 
   for (aux = root; aux != 0; aux = aux->next, cnt += ret)
-
     if (aux->name == 0) {
       if ((ret = (*f)(0,"",0,user)) < 0)
         break;
       if (lev > 0 && --lev == 0)
-        break; /* stop after 'lev' levels */
+	break; /* stop after 'lev' levels */
     }
-
     else
       if ((ret = (*f)(aux->type, aux->name, aux->attrib, user)) < 0)
         break;
@@ -184,7 +182,7 @@ void IDprint(int skip, int lev) {
     if (aux->name == 0) {
       printf(" :");
       if (lev > 0 && --lev == 0)
-        break; /* stop after 'lev' levels */
+	break; /* stop after 'lev' levels */
     }
     else
       printf(" %s:%d#%ld", aux->name, aux->type, aux->attrib);
