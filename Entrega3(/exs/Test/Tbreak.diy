@@ -10,6 +10,7 @@ public void entry (integer argc, string *argv, string *envp) {
 
   do {
     if a > 3 then break;
+
     printi(a)
     prints(" ")
     a++;

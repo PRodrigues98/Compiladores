@@ -27,6 +27,7 @@ int nostring(Node *arg1, Node *arg2);
 int intonly(Node *arg, int);
 int noassign(Node *arg1, Node *arg2);
 void function(int pub, Node *type, char *name, Node *body);
+void addExtern(char *name);
 
 static int ncicl;
 static char *fpar;
@@ -67,18 +68,20 @@ int pos;
 %type <i> ptr intp public
 
 %token LOCAL POSINC POSDEC PTR CALL START PARAM NIL
+
 %%
+
 completeFile : file 	{ externs(); }
 			 ;
 
 file	:
 		| file error ';'
-		| file public tipo ID ';'										{ if($2) extrns[extcnt++] = dupstr($4); IDnew($3->value.i, $4, 0); declare($2, 0, $3, $4, 0); }
-		| file public CONST tipo ID ';'									{ if($2) extrns[extcnt++] = dupstr($5); IDnew($4->value.i+5, $5, 0); declare($2, 1, $4, $5, 0); }
+		| file public tipo ID ';'										{ IDnew($3->value.i, $4, 0); if($2) addExtern($4); else declare($2, 0, $3, $4, 0); }
+		| file public CONST tipo ID ';'									{ IDnew($4->value.i+5, $5, 0); if($2) addExtern($5); else declare($2, 1, $4, $5, 0); }
 		| file public tipo ID init										{ IDnew($3->value.i, $4, 0); declare($2, 0, $3, $4, $5); }
 		| file public CONST tipo ID init								{ IDnew($4->value.i+5, $5, 0); declare($2, 1, $4, $5, $6); }
-		| file public tipo ID { enter($2, $3->value.i, $4); } finit 	{ if($2 || RIGHT_CHILD($6)->attrib == NIL) extrns[extcnt++] = dupstr(mkfunc($4)); function($2, $3, $4, $6); }
-		| file public VOID ID { enter($2, 4, $4); } finit				{ if($2 || RIGHT_CHILD($6)->attrib == NIL) extrns[extcnt++] = dupstr(mkfunc($4)); function($2, intNode(VOID, 4), $4, $6); }
+		| file public tipo ID { enter($2, $3->value.i, $4); } finit 	{ function($2, $3, $4, $6); }
+		| file public VOID ID { enter($2, 4, $4); } finit				{ function($2, intNode(VOID, 4), $4, $6); }
 		;
 
 public	:           { $$ = 0; }
@@ -267,7 +270,7 @@ expr : lv						{ $$ = uniNode(PTR, $1); $$->info = $1->info; }
 	 | '-' expr %prec UMINUS	{ $$ = uniNode(UMINUS, $2); $$->info = $2->info; nostring($2, $2);}
 	 | '~' expr %prec UMINUS 	{ $$ = uniNode(NOT, $2); $$->info = intonly($2, 0); }
 	 | '&' lv %prec UMINUS   	{ $$ = uniNode(REF, $2); $$->info = $2->info + 10; }
-	 | expr '!'             	{ $$ = uniNode('!', $1); $$->info = 3; intonly($1, 0); extrns[extcnt++] = dupstr("_factorial"); }
+	 | expr '!'             	{ $$ = uniNode('!', $1); $$->info = 3; intonly($1, 0); addExtern("_factorial"); }
 	 | INCR lv       			{ $$ = uniNode(INCR, $2); $$->info = intonly($2, 1); }
 	 | DECR lv       			{ $$ = uniNode(DECR, $2); $$->info = intonly($2, 1); }
 	 | lv INCR       			{ $$ = uniNode(POSINC, $1); $$->info = intonly($1, 1); }
@@ -277,12 +280,12 @@ expr : lv						{ $$ = uniNode(PTR, $1); $$->info = $1->info; }
 	 | expr '*' expr 			{ $$ = binNode('*', $1, $3); $$->info = nostring($1, $3); }
 	 | expr '/' expr 			{ $$ = binNode('/', $1, $3); $$->info = nostring($1, $3); }
 	 | expr '%' expr 			{ $$ = binNode('%', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
-	 | expr '<' expr 			{ $$ = binNode('<', $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) extrns[extcnt++] = dupstr("_strcmp");}
-	 | expr '>' expr 			{ $$ = binNode('>', $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) extrns[extcnt++] = dupstr("_strcmp");}
-	 | expr GE expr  			{ $$ = binNode(GE, $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) extrns[extcnt++] = dupstr("_strcmp");}
-	 | expr LE expr  			{ $$ = binNode(LE, $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) extrns[extcnt++] = dupstr("_strcmp");}
-	 | expr NE expr  			{ $$ = binNode(NE, $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) extrns[extcnt++] = dupstr("_strcmp");}
-	 | expr '=' expr 			{ $$ = binNode('=', $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) extrns[extcnt++] = dupstr("_strcmp");}
+	 | expr '<' expr 			{ $$ = binNode('<', $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) addExtern("_strcmp");}
+	 | expr '>' expr 			{ $$ = binNode('>', $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) addExtern("_strcmp");}
+	 | expr GE expr  			{ $$ = binNode(GE, $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) addExtern("_strcmp");}
+	 | expr LE expr  			{ $$ = binNode(LE, $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) addExtern("_strcmp");}
+	 | expr NE expr  			{ $$ = binNode(NE, $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) addExtern("_strcmp");}
+	 | expr '=' expr 			{ $$ = binNode('=', $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) addExtern("_strcmp");}
 	 | expr '&' expr 			{ $$ = binNode('&', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
 	 | expr '|' expr 			{ $$ = binNode('|', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
 	 | '(' expr ')' 			{ $$ = $2; $$->info = $2->info; }
@@ -461,10 +464,10 @@ void function(int pub, Node *type, char *name, Node *body){
 
 	IDpop();
 
-	if (bloco->attrib != NIL){ /* not a forward declaration */
+	long par;
+	int fwd = IDfind(name, &par);
 
-		long par;
-		int fwd = IDfind(name, &par);
+	if (bloco->attrib != NIL){ /* not a forward declaration */
 
 		if (fwd > 40){
 			yyerror("duplicate function");
@@ -475,4 +478,21 @@ void function(int pub, Node *type, char *name, Node *body){
 			enterFunction(pub, name, -pos, (int)retPos, type, bloco);
 		}
 	}
+	else if(fwd <= 40 && pub){
+
+		addExtern(mkfunc(name));
+	}
+}
+
+void addExtern(char *name){
+
+	int i;
+
+	for (i = 0; i < extcnt; i++){
+		if (extrns[i] && strcmp(extrns[i], name) == 0){
+			return;
+		}
+	}
+
+	extrns[extcnt++] = name;
 }

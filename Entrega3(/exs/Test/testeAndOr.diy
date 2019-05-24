@@ -1,0 +1,28 @@
+public void prints(string s)
+public void printi(integer i)
+public void println()
+
+
+public integer entry (integer argc, string *argv, string *envp) {
+
+	integer i
+	integer j
+	integer k
+
+	i := 0
+	j := 1
+	k := 1
+
+	if i & j | i | j then prints("Bem\n")
+	else prints("Mal\n")
+
+	if i + 1 = j & j = k then prints("Bem\n")
+	else prints("Mal\n")
+
+	i := 1
+
+	if i + 1 = j & j = k then prints("Mal\n")
+	else prints("Bem\n")
+
+	entry := 0
+};

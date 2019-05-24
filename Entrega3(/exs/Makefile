@@ -24,6 +24,7 @@ LD=ld -melf_i386 # loader command
 #SRC= Test/Twhile.diy 
 
 
+#SRC= teste.diy
 #SRC= testeAndOr.diy 
 #SRC= testeBreakContinueWithWhile.diy 
 #SRC= ack.diy
@@ -31,7 +32,8 @@ LD=ld -melf_i386 # loader command
 #SRC= testeStringReference.diy
 #SRC= testeAlloc.diy
 #SRC= factorial.diy
-SRC= testeStringComparisons.diy
+#SRC= testeStringComparisons.diy
+SRC= testeForDoubles.diy
 
 EXE=$(SRC:%.diy=%)
 

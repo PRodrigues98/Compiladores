@@ -1,0 +1,21 @@
+public void printd(number d)
+public void prints(string s)
+
+public void entry (integer argc, string *argv, string *envp) {
+    number d
+    d := 4.6
+
+    for d in 3.1 downto 0 step 1 do {
+        printd(d)
+        prints(" ")
+    }
+
+    prints("\n3.1 2.1 1.1 1E-1 <- expected\n")
+
+    for d in 0.2 upto 6.2 step 2 do {
+        printd(d)
+        prints(" ")
+    }
+
+    prints("\n2E-1 2.2 4.2 6.2 <- expected\n")
+};
