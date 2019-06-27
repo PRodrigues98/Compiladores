@@ -201,6 +201,9 @@ base: sexpr 					1 { if(p->info != 4) fprintf(outfp, pfTRASH, 4); }
 base: rexpr 					1 { if(p->info != 4) fprintf(outfp, pfTRASH, 8); }
 base: bloco
 
+base: GOTO						1 { fprintf(outfp, pfJMP, p->value.s); }
+base: LABEL						1 { fprintf(outfp, pfLABEL, p->value.s); }
+
 base: BREAK						1 { fprintf(outfp, pfJMP, mklbl(brklbl[brkcnt - (p->value.i - 1)])); }
 base: CONTINUE					1 { fprintf(outfp, pfJMP, mklbl(brklbl[brkcnt - (p->value.i - 1)] + 1)); }
 
@@ -291,6 +294,7 @@ clv: INDEX(ptr, expr)	 leftIsString { fprintf(outfp, pfIMM pfMUL pfADD, sizeOfPo
 ptr: PTR(lv) 						1 { fprintf(outfp, pfLOAD); }
 
 %! Operations
+expr: XOR(expr, expr)			1 { fprintf(outfp, pfXOR); }
 expr: ADD(expr, expr) 			1 { fprintf(outfp, pfADD); }
 rexpr: ADD(rexpr, rexpr) 		1 { fprintf(outfp, pfDADD); }
 expr: SUB(expr, expr) 			1 { fprintf(outfp, pfSUB); }

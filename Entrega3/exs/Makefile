@@ -33,7 +33,11 @@ LD=ld -melf_i386 # loader command
 #SRC= testeAlloc.diy
 #SRC= factorial.diy
 #SRC= testeStringComparisons.diy
-SRC= testeForDoubles.diy
+#SRC= testeForDoubles.diy
+#SRC= grosa.diy
+#SRC= exemplo1.diy
+#SRC= exemplo2.diy
+SRC= exemplo3.diy
 
 EXE=$(SRC:%.diy=%)
 

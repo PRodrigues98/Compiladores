@@ -1,0 +1,12 @@
+public void prints(string s)
+
+public integer entry (integer argc, string *argv, string *envp) {
+
+	goto teste;
+
+	prints("Não devia imprimir\n")
+
+	teste:
+
+	prints("Devia imprimir\n")
+};

@@ -18,6 +18,9 @@ extern void externs();
 extern char *extrns[100]; /* emit externs at the end only */
 extern int extcnt;
 
+char *labels[100]; /* confirm labels at the end */
+int lblcnt = 0;
+
 
 void yyerror(char *s);
 void declare(int pub, int cnst, Node *type, char *name, Node *value);
@@ -47,7 +50,7 @@ int pos;
 %token <i> INT
 %token <r> REAL
 %token <s> ID STR
-%token DO WHILE IF THEN FOR IN UPTO DOWNTO STEP BREAK CONTINUE
+%token DO WHILE IF THEN FOR IN UPTO DOWNTO STEP BREAK CONTINUE GOTO LABEL
 %token VOID INTEGER STRING NUMBER CONST PUBLIC INCR DECR DECLS
 %nonassoc IFX
 %nonassoc ELSE
@@ -56,6 +59,7 @@ int pos;
 %left '|'
 %left '&'
 %nonassoc '~'
+%right XOR
 %left '=' NE
 %left GE LE '>' '<'
 %left '+' '-'
@@ -192,6 +196,8 @@ base : ';'                   									{ $$ = nilNode(VOID); }
 	 | expr ';'        	{ $$ = $1; }
 	 | bloco           	{ $$ = $1; }
 	 | lv '#' expr ';' 	{ $$ = binNode('#', $3, $1); }
+	 | ID LABEL 		{ $$ = strNode(LABEL, $1); }
+	 | GOTO ID ';'		{ $$ = strNode(GOTO, $2); }
 	 | error ';'       	{ $$ = nilNode(NIL); }
 	 ;
 
@@ -288,6 +294,7 @@ expr : lv						{ $$ = uniNode(PTR, $1); $$->info = $1->info; }
 	 | expr '=' expr 			{ $$ = binNode('=', $1, $3); $$->info = 1; if($1->info == $3->info && $1->info == 2) addExtern("_strcmp");}
 	 | expr '&' expr 			{ $$ = binNode('&', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
 	 | expr '|' expr 			{ $$ = binNode('|', $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
+	 | expr XOR expr 			{ $$ = binNode(XOR, $1, $3); $$->info = intonly($1, 0); intonly($3, 0); }
 	 | '(' expr ')' 			{ $$ = $2; $$->info = $2->info; }
 	 | ID '(' args ')' 			{ $$ = binNode(CALL, strNode(ID, $1), $3); $$->info = checkargs($1, $3); }
 	 | ID '(' ')'    			{ $$ = binNode(CALL, strNode(ID, $1), intNode(VOID, 0)); $$->info = checkargs($1, 0); }

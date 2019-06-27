@@ -44,7 +44,13 @@ FLT	[0-9]+\.[0-9]+([Ee][+-]?[0-9]+)?
 "public"		eoi = 0; return PUBLIC;
 "const"			eoi = 0; return CONST;
 "break"			eoi = 0; return BREAK;
-"continue"		eoi = 0; return CONTINUE;
+"continue"	eoi = 0; return CONTINUE;
+"xor"       eoi = 0; return XOR;
+
+"goto"       eoi = 0; return GOTO;
+
+
+\:  eoi = 0; return LABEL;
 
 [A-Za-z][A-Za-z0-9_]*	eoi = 1; yylval.s = strdup(yytext); return ID;
 \"([^"\\]|\\(.|\n))*\"	eoi = 1; yylval.s = malloc(yyleng); *yylval.s = 0; in = 1; REJECT;
